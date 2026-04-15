@@ -1,15 +1,17 @@
 {
-  "name": "Sekainime-api",
+  "name": "sekainime-api",
   "version": "1.0.50",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "dev": "bun run --watch src/index.ts"
   },
   "dependencies": {
-    "elysia": "latest"
+    "elysia": "latest",
+    "puppeteer": "^24.40.0"
   },
   "devDependencies": {
-    "bun-types": "latest"
+    "bun-types": "latest",
+    "typescript": "^6.0.2"
   },
   "module": "src/index.js"
 }
