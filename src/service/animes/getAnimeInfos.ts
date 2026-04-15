@@ -1,11 +1,10 @@
 import puppeteer from "puppeteer";
+import { Episode } from "../../types/episode.type";
+import { AnimeInfos } from "../../types/anime.type";
 
-interface Episode {
-  number: number;
-  title: string;
-}
-
-export const getAnimeInfos = async (anime: string) => {
+export const getAnimeInfos = async (
+  anime: string,
+): Promise<AnimeInfos | null> => {
   const url = `https://animefire.io/animes/${anime.toLowerCase().replace(/ /g, "-")}-todos-os-episodios`;
   const browser = await puppeteer.launch({ headless: true });
 
@@ -23,8 +22,12 @@ export const getAnimeInfos = async (anime: string) => {
       if (items.length === 0) return null;
 
       const animeNameRaw = document.querySelector("h1")?.textContent || "";
-      const animeBanner =
-        document.querySelector("img")?.getAttribute("src") || "";
+      const poster = document.querySelector("img")?.getAttribute("src") || "";
+      const orientalName =
+        document.querySelectorAll(".div_anime_names h6")[0]?.textContent || "";
+      const japaneseName =
+        document.querySelectorAll(".div_anime_names h6")[1]?.textContent || "";
+      const synopsis = document.querySelector(".divSinopse")?.textContent || "";
 
       const episodes: Episode[] = Array.from(items).map((el) => {
         const episodeNumber = (el as HTMLAnchorElement).href || "";
@@ -37,8 +40,11 @@ export const getAnimeInfos = async (anime: string) => {
       });
 
       return {
-        animeName: animeNameRaw.trim(),
-        animeBanner,
+        name: animeNameRaw.trim(),
+        japaneseName,
+        orientalName,
+        poster,
+        synopsis,
         episodes,
       };
     });
@@ -47,7 +53,7 @@ export const getAnimeInfos = async (anime: string) => {
 
     if (!animeData) {
       await browser.close();
-      return [];
+      return null;
     }
 
     return animeData;
