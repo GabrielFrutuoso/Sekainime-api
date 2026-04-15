@@ -22,7 +22,12 @@ export const getAnimeInfos = async (
       if (items.length === 0) return null;
 
       const animeNameRaw = document.querySelector("h1")?.textContent || "";
-      const poster = document.querySelector("img")?.getAttribute("src") || "";
+      const poster =
+        document
+          .querySelector(".sub_animepage_img img")
+          ?.getAttribute("data-src") ||
+        document.querySelector(".sub_animepage_img img")?.getAttribute("src") ||
+        "";
       const orientalName =
         document.querySelectorAll(".div_anime_names h6")[0]?.textContent || "";
       const japaneseName =
