@@ -1,6 +1,7 @@
 import { Elysia } from "elysia";
 import { listAnimes } from "../service/animes/listAnimes";
 import { searchAnimes } from "../service/animes/searchAnimes";
+import { getAnimeInfos } from "../service/animes/getAnimeInfos";
 
 export const animesController = new Elysia().group("/animes", (app) =>
   app
@@ -17,5 +18,10 @@ export const animesController = new Elysia().group("/animes", (app) =>
       );
       if (!animes) set.status = 404;
       return animes;
+    })
+    .get("/infos/:anime", async ({ params, set }) => {
+      const anime = await getAnimeInfos(params.anime);
+      if (!anime) set.status = 404;
+      return anime;
     }),
 );
