@@ -3,7 +3,7 @@ import puppeteer from "puppeteer";
 export const getAnimeEpisodeUrl = async (
   anime: string,
   episodeNumber: string,
-) => {
+): Promise<{ videoUrl: string | null } | null> => {
   const url = `https://animefire.io/animes/${anime.toLowerCase().replace(/ /g, "-")}/${episodeNumber}`;
   const browser = await puppeteer.launch({ headless: true });
 
