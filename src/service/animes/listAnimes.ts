@@ -13,20 +13,43 @@ export const listAnimes = async (
   const page = await browser.newPage();
   await page.goto(url, { waitUntil: "domcontentloaded" });
 
-  const data = await page.evaluate(() => {
-    const items = document.querySelectorAll(
-      ".card-group .row .divCardUltimosEps .cardUltimosEps",
-    );
+  try {
+    const data = await page.evaluate(() => {
+      const items = document.querySelectorAll(".divCardUltimosEps");
+      const lastPageHref = document
+        .querySelector(".firLasLi a")
+        ?.getAttribute("href");
+      const lastPage = lastPageHref
+        ? lastPageHref.split("/").filter(Boolean).pop()
+        : null;
 
-    const animes = Array.from(items).map((el) => {
-      const animeName =
-        el.querySelector("h3")?.textContent || "";
-      return { animeName };
+      const animes: { name: string; poster: string }[] = Array.from(items).map(
+        (el) => {
+          const name =
+            el.querySelector(".animeTitle")?.textContent?.trim() || "";
+          const poster =
+            el.querySelector("img")?.getAttribute("data-src") ||
+            el.querySelector("img")?.getAttribute("src") ||
+            "";
+
+          return {
+            name,
+            poster,
+          };
+        },
+      );
+
+      if (animes.length === 0) {
+        return null;
+      }
+
+      return { animes, lastPage };
     });
 
-    return animes;
-  });
-
-  await browser.close();
-  return data;
+    await browser.close();
+    return data;
+  } catch (error) {
+    await browser.close();
+    throw error;
+  }
 };
