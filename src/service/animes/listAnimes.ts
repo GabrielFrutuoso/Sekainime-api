@@ -1,10 +1,11 @@
 import puppeteer from "puppeteer";
+import { Anime, AnimePromise } from "../../types/anime.type";
 
 export const listAnimes = async (
   param: string = "top-animes",
   pageIndex: number | null = null,
   releaseYear: string | null = null,
-) => {
+): Promise<AnimePromise | null> => {
   const url = `https://animefire.io/${param}${pageIndex ? `/${pageIndex}` : ""}${
     releaseYear ? `?ano=${releaseYear}` : ""
   }`;
@@ -14,7 +15,7 @@ export const listAnimes = async (
   await page.goto(url, { waitUntil: "domcontentloaded" });
 
   try {
-    const data = await page.evaluate((pageIndex) => {
+    const data = await page.evaluate((pageIndex: number | null) => {
       const items = document.querySelectorAll(".divCardUltimosEps");
       const lastPageHref = document
         .querySelectorAll(".firLasLi a")
@@ -23,21 +24,18 @@ export const listAnimes = async (
         ? lastPageHref.split("/").filter(Boolean).pop()
         : null;
 
-      const animes: { name: string; poster: string }[] = Array.from(items).map(
-        (el) => {
-          const name =
-            el.querySelector(".animeTitle")?.textContent?.trim() || "";
-          const poster =
-            el.querySelector("img")?.getAttribute("data-src") ||
-            el.querySelector("img")?.getAttribute("src") ||
-            "";
+      const animes: Anime[] = Array.from(items).map((el) => {
+        const name = el.querySelector(".animeTitle")?.textContent?.trim() || "";
+        const poster =
+          el.querySelector("img")?.getAttribute("data-src") ||
+          el.querySelector("img")?.getAttribute("src") ||
+          "";
 
-          return {
-            name,
-            poster,
-          };
-        },
-      );
+        return {
+          name,
+          poster,
+        };
+      });
 
       if (animes.length === 0) {
         return null;
