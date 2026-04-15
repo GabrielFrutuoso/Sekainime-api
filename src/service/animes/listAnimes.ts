@@ -14,11 +14,11 @@ export const listAnimes = async (
   await page.goto(url, { waitUntil: "domcontentloaded" });
 
   try {
-    const data = await page.evaluate(() => {
+    const data = await page.evaluate((pageIndex) => {
       const items = document.querySelectorAll(".divCardUltimosEps");
       const lastPageHref = document
-        .querySelector(".firLasLi a")
-        ?.getAttribute("href");
+        .querySelectorAll(".firLasLi a")
+        [pageIndex === 1 || !pageIndex ? 0 : 1]?.getAttribute("href");
       const lastPage = lastPageHref
         ? lastPageHref.split("/").filter(Boolean).pop()
         : null;
@@ -43,8 +43,15 @@ export const listAnimes = async (
         return null;
       }
 
-      return { animes, lastPage };
-    });
+      return {
+        animes,
+        pagination: {
+          lastPage: Number(lastPage),
+          currentPage: pageIndex || 1,
+          totalElements: animes.length,
+        },
+      };
+    }, pageIndex);
 
     await browser.close();
     return data;
