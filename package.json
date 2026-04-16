@@ -7,6 +7,7 @@
     "build": "bun build --compile --minify-whitespace --minify-syntax --target bun --outfile server src/index.ts"
   },
   "dependencies": {
+    "@elysiajs/cors": "^1.4.1",
     "elysia": "latest",
     "puppeteer": "^24.40.0"
   },
