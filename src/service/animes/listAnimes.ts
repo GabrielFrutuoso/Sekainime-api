@@ -26,6 +26,9 @@ export const listAnimes = async (
         ? lastPageHref.split("/").filter(Boolean).pop()
         : null;
 
+      const lastPageNum = Number(lastPage);
+      const current = pageIndex || 1;
+
       const animes: Anime[] = Array.from(items).map((el) => {
         const name = el.querySelector(".animeTitle")?.textContent?.trim() || "";
         const poster =
@@ -46,8 +49,8 @@ export const listAnimes = async (
       return {
         animes,
         pagination: {
-          lastPage: Number(lastPage),
-          currentPage: pageIndex || 1,
+          lastPage: lastPageNum && lastPageNum > current ? lastPageNum : current,
+          currentPage: current,
           totalElements: animes.length,
         },
       };
