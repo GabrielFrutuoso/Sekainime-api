@@ -17,9 +17,11 @@ export const listAnimes = async (
   try {
     const data = await page.evaluate((pageIndex: number | null) => {
       const items = document.querySelectorAll(".divCardUltimosEps");
-      const lastPageHref = document
-        .querySelectorAll(".firLasLi a")
-        [pageIndex === 1 || !pageIndex ? 0 : 1]?.getAttribute("href");
+      const paginationLinks = document.querySelectorAll(".pagination .page-item a");
+      const lastPageHref = paginationLinks.length > 0 
+        ? paginationLinks[paginationLinks.length - 1].getAttribute("href") 
+        : null;
+
       const lastPage = lastPageHref
         ? lastPageHref.split("/").filter(Boolean).pop()
         : null;
