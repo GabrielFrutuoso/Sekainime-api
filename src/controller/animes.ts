@@ -6,8 +6,11 @@ import { getAnimeEpisodeUrl } from "../service/animes/getAnimeEpisodeUrl";
 
 export const animesController = new Elysia().group("/animes", (app) =>
   app
-    .get("/search/:param", async ({ params, set }) => {
-      const animes = await searchAnimes(params.param);
+    .get("/search/:param/:page?", async ({ params, set }) => {
+      const animes = await searchAnimes(
+        params.param,
+        params.page ? Number(params.page) : null,
+      );
       if (!animes) set.status = 404;
       return animes;
     })
