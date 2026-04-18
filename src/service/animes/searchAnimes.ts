@@ -3,16 +3,32 @@ import { Anime } from "../../types/anime.type";
 
 export const searchAnimes = async (
   param: string,
+  pageIndex: number | null = 1,
 ): Promise<{ animes: Anime[] } | null> => {
-  const url = `https://animefire.io/pesquisar/${param.toLowerCase().replace(/ /g, "-")}`;
+  const url = `https://animefire.io/pesquisar/${param.toLowerCase().replace(/ /g, "-")}${pageIndex ? `/${pageIndex}` : "1"}`;
   const browser = await puppeteer.launch({ headless: true });
 
   const page = await browser.newPage();
   await page.goto(url, { waitUntil: "domcontentloaded" });
 
   try {
-    const data = await page.evaluate(() => {
+    const data = await page.evaluate((pageIndex: number | null) => {
       const items = document.querySelectorAll(".divCardUltimosEps");
+
+      const paginationLinks = document.querySelectorAll(
+        ".pagination .page-item a",
+      );
+      const lastPageHref =
+        paginationLinks.length > 0
+          ? paginationLinks[paginationLinks.length - 1].getAttribute("href")
+          : null;
+
+      const lastPage = lastPageHref
+        ? lastPageHref.split("/").filter(Boolean).pop()
+        : null;
+
+      const lastPageNum = Number(lastPage);
+      const current = pageIndex || 1;
 
       const animes: Anime[] = Array.from(items).map((el) => {
         const name = el.querySelector(".animeTitle")?.textContent?.trim() || "";
@@ -33,8 +49,14 @@ export const searchAnimes = async (
 
       return {
         animes,
+        pagination: {
+          lastPage:
+            lastPageNum && lastPageNum > current ? lastPageNum : current,
+          currentPage: current,
+          totalElements: animes.length,
+        },
       };
-    });
+    }, pageIndex);
 
     await browser.close();
     return data;
