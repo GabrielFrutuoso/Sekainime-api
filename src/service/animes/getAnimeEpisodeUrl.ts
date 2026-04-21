@@ -4,7 +4,8 @@ export const getAnimeEpisodeUrl = async (
   anime: string,
   episodeNumber: string,
 ): Promise<{ videoUrl: string | null } | null> => {
-  const url = `https://animefire.io/animes/${anime.toLowerCase().replace(/ /g, "-")}/${episodeNumber}`;
+  const animeSlug = anime.toLowerCase().replace(/ /g, "-");
+  const url = `https://animefire.io/animes/${animeSlug}/${episodeNumber}`;
   const browser = await puppeteer.launch({ headless: true });
 
   try {
@@ -15,7 +16,7 @@ export const getAnimeEpisodeUrl = async (
 
     await page.goto(url, { waitUntil: "networkidle2" });
 
-    const videoUrl = await page.evaluate(() => {
+    let videoUrl = await page.evaluate(() => {
       const videoElement = document.querySelector<HTMLVideoElement>(
         "#my-video_html5_api",
       );
@@ -32,6 +33,27 @@ export const getAnimeEpisodeUrl = async (
         null
       );
     });
+
+    if (!videoUrl) {
+      const formattedEp = episodeNumber.padStart(2, "0");
+      const fallbackUrl = `https://animesbr.lat/animes/${animeSlug}/episodios/${animeSlug}-episodio-${formattedEp}`;
+
+      await page.goto(fallbackUrl, { waitUntil: "networkidle2" });
+
+      videoUrl = await page.evaluate(() => {
+        const videoElement = document.querySelector("video");
+
+        if (!videoElement) return null;
+
+        return (
+          videoElement.src ||
+          videoElement.currentSrc ||
+          videoElement.getAttribute("src") ||
+          document.querySelector("video source")?.getAttribute("src") ||
+          null
+        );
+      });
+    }
 
     await browser.close();
     return { videoUrl };
