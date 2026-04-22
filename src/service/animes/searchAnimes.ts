@@ -1,67 +1,42 @@
-import puppeteer from "puppeteer";
-import { Anime } from "../../types/anime.type";
+import { AnimePromise } from "../../types/anime.type";
+import { searchAnimesFromAnimesFire } from "../../utils/searchAnimes/searchAnimesFromAnimesFire";
+import { searchFromAnimesOnline } from "../../utils/searchAnimes/searchFromAnimesOnline";
 
 export const searchAnimes = async (
   param: string,
   pageIndex: number | null = 1,
-): Promise<{ animes: Anime[] } | null> => {
-  const url = `https://animefire.io/pesquisar/${param.toLowerCase().replace(/ /g, "-")}${pageIndex ? `/${pageIndex}` : "1"}`;
-  const browser = await puppeteer.launch({ headless: true });
+): Promise<AnimePromise | null> => {
+  const [resultFire, resultOnline] = await Promise.all([
+    searchAnimesFromAnimesFire(param, pageIndex),
+    searchFromAnimesOnline(param, pageIndex),
+  ]);
 
-  const page = await browser.newPage();
-  await page.goto(url, { waitUntil: "domcontentloaded" });
+  if (!resultFire && !resultOnline) return null;
 
-  try {
-    const data = await page.evaluate((pageIndex: number | null) => {
-      const items = document.querySelectorAll(".divCardUltimosEps");
+  const combinedAnimes = [
+    ...(resultFire?.animes || []),
+    ...(resultOnline?.animes || []),
+  ];
 
-      const paginationLinks = document.querySelectorAll(
-        ".pagination .page-item a",
-      );
-      const lastPageHref =
-        paginationLinks.length > 0
-          ? paginationLinks[paginationLinks.length - 1].getAttribute("href")
-          : null;
+  const seenNames = new Set<string>();
+  const uniqueAnimes = combinedAnimes.filter((anime) => {
+    const lowerName = anime.name.toLowerCase().trim();
+    if (seenNames.has(lowerName)) return false; 
+    seenNames.add(lowerName);
+    return true;
+  });
 
-      const lastPage = lastPageHref
-        ? lastPageHref.split("/").filter(Boolean).pop()
-        : null;
+  if (uniqueAnimes.length === 0) return null;
 
-      const lastPageNum = Number(lastPage);
-      const current = pageIndex || 1;
-
-      const animes: Anime[] = Array.from(items).map((el) => {
-        const name = el.querySelector(".animeTitle")?.textContent?.trim() || "";
-        const poster =
-          el.querySelector("img")?.getAttribute("data-src") ||
-          el.querySelector("img")?.getAttribute("src") ||
-          "";
-
-        return {
-          name,
-          poster,
-        };
-      });
-
-      if (animes.length === 0) {
-        return null;
-      }
-
-      return {
-        animes,
-        pagination: {
-          lastPage:
-            lastPageNum && lastPageNum > current ? lastPageNum : current,
-          currentPage: current,
-          totalElements: animes.length,
-        },
-      };
-    }, pageIndex);
-
-    await browser.close();
-    return data;
-  } catch (error) {
-    await browser.close();
-    throw error;
-  }
+  return {
+    animes: uniqueAnimes,
+    pagination: {
+      currentPage: pageIndex || 1,
+      lastPage: Math.max(
+        resultFire?.pagination?.lastPage || 0,
+        resultOnline?.pagination?.lastPage || 0,
+      ),
+      totalElements: uniqueAnimes.length,
+    },
+  };
 };
