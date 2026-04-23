@@ -1,65 +1,41 @@
-import puppeteer from "puppeteer";
-import { Anime, AnimePromise } from "../../types/anime.type";
+import { listAnimesFromAnimesOnline } from "../../utils/listAnimes/listAnimesFromAnimesOnline";
+import { AnimePromise } from "../../types/anime.type";
+import { listAnimesFromAnimesFire } from "../../utils/listAnimes/listAnimesFromAnimesFire";
 
 export const listAnimes = async (
   param: string = "top-animes",
   pageIndex: number | null = null,
   releaseYear: string | null = null,
 ): Promise<AnimePromise | null> => {
-  const url = `https://animefire.io/${param}${pageIndex ? `/${pageIndex}` : ""}${
-    releaseYear ? `?ano=${releaseYear}` : ""
-  }`;
-  const browser = await puppeteer.launch({ headless: true });
+  const [resultFire, resultOnline] = await Promise.all([
+    listAnimesFromAnimesFire(param, pageIndex, releaseYear),
+    listAnimesFromAnimesOnline(pageIndex),
+  ]);
 
-  const page = await browser.newPage();
-  await page.goto(url, { waitUntil: "domcontentloaded" });
+  if (!resultFire && !resultOnline) return null;
 
-  try {
-    const data = await page.evaluate((pageIndex: number | null) => {
-      const items = document.querySelectorAll(".divCardUltimosEps");
-      const paginationLinks = document.querySelectorAll(".pagination .page-item a");
-      const lastPageHref = paginationLinks.length > 0 
-        ? paginationLinks[paginationLinks.length - 1].getAttribute("href") 
-        : null;
+  const combinedAnimes = [
+    ...(resultFire?.animes || []),
+    ...(resultOnline?.animes || []),
+  ];
+  const seenNames = new Set<string>();
 
-      const lastPage = lastPageHref
-        ? lastPageHref.split("/").filter(Boolean).pop()
-        : null;
+  const uniqueAnimes = combinedAnimes.filter((anime) => {
+    const lowerName = anime.name.toLowerCase().trim();
+    if (seenNames.has(lowerName)) return false;
+    seenNames.add(lowerName);
+    return true;
+  });
 
-      const lastPageNum = Number(lastPage);
-      const current = pageIndex || 1;
-
-      const animes: Anime[] = Array.from(items).map((el) => {
-        const name = el.querySelector(".animeTitle")?.textContent?.trim() || "";
-        const poster =
-          el.querySelector("img")?.getAttribute("data-src") ||
-          el.querySelector("img")?.getAttribute("src") ||
-          "";
-
-        return {
-          name,
-          poster,
-        };
-      });
-
-      if (animes.length === 0) {
-        return null;
-      }
-
-      return {
-        animes,
-        pagination: {
-          lastPage: lastPageNum && lastPageNum > current ? lastPageNum : current,
-          currentPage: current,
-          totalElements: animes.length,
-        },
-      };
-    }, pageIndex);
-
-    await browser.close();
-    return data;
-  } catch (error) {
-    await browser.close();
-    throw error;
-  }
+  return {
+    animes: uniqueAnimes,
+    pagination: {
+      currentPage: pageIndex || 1,
+      lastPage: Math.max(
+        resultFire?.pagination?.lastPage || 0,
+        resultOnline?.pagination?.lastPage || 0,
+      ),
+      totalElements: uniqueAnimes.length,
+    },
+  };
 };
