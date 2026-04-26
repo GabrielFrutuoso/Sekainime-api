@@ -19,9 +19,13 @@ export const searchAnimes = async (
   ];
 
   const seenNames = new Set<string>();
-  const uniqueAnimes = combinedAnimes.filter((anime) => {
-    const lowerName = anime.name.toLowerCase().trim();
-    if (seenNames.has(lowerName)) return false; 
+  const processedAnimes = combinedAnimes.map((anime) => ({
+    ...anime,
+    name: anime.name.replace(/\(dublado\)/gi, "dublado"),
+  }));
+  const uniqueAnimes = processedAnimes.filter((anime) => {
+    const lowerName = anime.name.toLowerCase().replace(/\s+/g, " ").trim();
+    if (seenNames.has(lowerName)) return false;
     seenNames.add(lowerName);
     return true;
   });
