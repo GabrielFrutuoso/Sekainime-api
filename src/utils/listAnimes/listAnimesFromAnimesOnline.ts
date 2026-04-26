@@ -6,7 +6,7 @@ export const listAnimesFromAnimesOnline = async (
   pageIndex: number | null = 1,
 ): Promise<AnimePromise | null> => {
   const pageNumber = pageIndex || 1;
-  const url = `https://animesonlines.net${param}${
+  const url = `https://animesonlines.net/lista-de-animes/${param}${
     pageNumber > 1 ? `pagina=${pageNumber}` : ""
   }`;
 

@@ -3,14 +3,13 @@ import { AnimePromise } from "../../types/anime.type";
 import { listAnimesFromAnimesFire } from "../../utils/listAnimes/listAnimesFromAnimesFire";
 
 const ANIMES_ONLINE_MAP: Record<string, string> = {
-  "lista-de-animes-dublados": "/lista-de-animes/?audio=Dublado",
-  "lista-de-animes-legendados": "/lista-de-animes/?audio=Legendado",
-  "top-animes": "/lista-de-animes/?ordem=score",
-  "em-lancamento": "/lista-de-animes/?ordem=date",
-  "lista-de-filmes-legendados":
-    "/lista-de-animes/?ordem=date&tipo=Filme&audio=Legendado",
-  "lista-de-filmes-dublados":
-    "/lista-de-animes/?ordem=date&tipo=Filme&audio=Dublado",
+  "lista-de-animes-dublados": "?audio=Dublado",
+  "lista-de-animes-legendados": "?audio=Legendado",
+  "top-animes": "?ordem=score",
+  "em-lancamento": "?ordem=date",
+  "lista-de-filmes-legendados": "?ordem=date&tipo=Filme&audio=Legendado",
+  "lista-de-filmes-dublados": "?ordem=date&tipo=Filme&audio=Dublado",
+  "animes-atualizados": "?ordem=date",
 };
 
 export const listAnimes = async (
@@ -19,6 +18,7 @@ export const listAnimes = async (
   releaseYear: string | null = null,
 ): Promise<AnimePromise | null> => {
   const onlineParam = ANIMES_ONLINE_MAP[param] || param;
+  console.log(ANIMES_ONLINE_MAP[param]);
 
   const [resultFire, resultOnline] = await Promise.all([
     listAnimesFromAnimesFire(param, pageIndex, releaseYear),
