@@ -2,19 +2,20 @@ import puppeteer from "puppeteer";
 import { Anime, AnimePromise } from "../../types/anime.type";
 
 export const listAnimesFromAnimesOnline = async (
+  param: string = "score",
   pageIndex: number | null = 1,
 ): Promise<AnimePromise | null> => {
   const pageNumber = pageIndex || 1;
-  const url = `https://animesonlines.net/lista-de-animes?${
+  const url = `https://animesonlines.net${param}${
     pageNumber > 1 ? `pagina=${pageNumber}` : ""
-  }&ordem=score&tipo=TV`;
+  }`;
 
   const browser = await puppeteer.launch({ headless: true });
 
   const page = await browser.newPage();
   await page.goto(url, { waitUntil: "domcontentloaded" });
 
-  try {
+  try {  
     const data = await page.evaluate((current: number) => {
       const items = document.querySelectorAll(".sc-catalog-grid a");
       const paginationLinks = document.querySelectorAll(
@@ -48,7 +49,7 @@ export const listAnimesFromAnimesOnline = async (
       if (animes.length === 0) {
         return null;
       }
-
+      
       return {
         animes,
         pagination: {
