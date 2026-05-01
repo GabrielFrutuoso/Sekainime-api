@@ -18,7 +18,6 @@ export const listAnimes = async (
   releaseYear: string | null = null,
 ): Promise<AnimePromise | null> => {
   const onlineParam = ANIMES_ONLINE_MAP[param] || param;
-  console.log(ANIMES_ONLINE_MAP[param]);
 
   const [resultFire, resultOnline] = await Promise.all([
     listAnimesFromAnimesFire(param, pageIndex, releaseYear),
