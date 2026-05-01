@@ -1,5 +1,5 @@
-import puppeteer from "puppeteer";
 import { Anime, AnimePromise } from "../../types/anime.type";
+import { withPage } from "../puppeteerPool";
 
 export const listAnimesFromAnimesOnline = async (
   param: string = "score",
@@ -10,61 +10,58 @@ export const listAnimesFromAnimesOnline = async (
     pageNumber > 1 ? `pagina=${pageNumber}` : ""
   }`;
 
-  const browser = await puppeteer.launch({ headless: true });
+  try {
+    const data = await withPage(async (page) => {
+      await page.goto(url, { waitUntil: "domcontentloaded" });
 
-  const page = await browser.newPage();
-  await page.goto(url, { waitUntil: "domcontentloaded" });
+      return await page.evaluate((current: number) => {
+        const items = document.querySelectorAll(".sc-catalog-grid a");
+        const paginationLinks = document.querySelectorAll(
+          ".pagination .page-item a",
+        );
+        const lastPageHref =
+          paginationLinks.length > 0
+            ? paginationLinks[paginationLinks.length - 1].getAttribute("href")
+            : null;
 
-  try {  
-    const data = await page.evaluate((current: number) => {
-      const items = document.querySelectorAll(".sc-catalog-grid a");
-      const paginationLinks = document.querySelectorAll(
-        ".pagination .page-item a",
-      );
-      const lastPageHref =
-        paginationLinks.length > 0
-          ? paginationLinks[paginationLinks.length - 1].getAttribute("href")
+        const lastPage = lastPageHref
+          ? lastPageHref.split("/").filter(Boolean).pop()
           : null;
 
-      const lastPage = lastPageHref
-        ? lastPageHref.split("/").filter(Boolean).pop()
-        : null;
+        const lastPageNum = Number(lastPage);
 
-      const lastPageNum = Number(lastPage);
+        const animes: Anime[] = Array.from(items).map((el) => {
+          const name =
+            el.querySelector(".sc-card-title")?.textContent?.trim() || "";
+          const poster =
+            el.querySelector(".sc-card-poster img")?.getAttribute("data-src") ||
+            el.querySelector(".sc-card-poster img")?.getAttribute("src") ||
+            "";
 
-      const animes: Anime[] = Array.from(items).map((el) => {
-        const name =
-          el.querySelector(".sc-card-title")?.textContent?.trim() || "";
-        const poster =
-          el.querySelector(".sc-card-poster img")?.getAttribute("data-src") ||
-          el.querySelector(".sc-card-poster img")?.getAttribute("src") ||
-          "";
+          return {
+            name,
+            poster,
+          };
+        });
+
+        if (animes.length === 0) {
+          return null;
+        }
 
         return {
-          name,
-          poster,
+          animes,
+          pagination: {
+            lastPage:
+              lastPageNum && lastPageNum > current ? lastPageNum : current,
+            currentPage: current,
+            totalElements: animes.length,
+          },
         };
-      });
+      }, pageNumber);
+    });
 
-      if (animes.length === 0) {
-        return null;
-      }
-      
-      return {
-        animes,
-        pagination: {
-          lastPage:
-            lastPageNum && lastPageNum > current ? lastPageNum : current,
-          currentPage: current,
-          totalElements: animes.length,
-        },
-      };
-    }, pageNumber);
-
-    await browser.close();
     return data;
   } catch (error) {
-    await browser.close();
     throw error;
   }
 };
