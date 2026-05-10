@@ -1,22 +1,25 @@
 import { AnimePromise } from "../../types/anime.type";
-import { searchAnimesFromAnimesFire } from "../../utils/searchAnimes/searchAnimesFromAnimesFire";
-import { searchFromAnimesOnline } from "../../utils/searchAnimes/searchFromAnimesOnline";
+import { ScrapeSource } from "../../types/scrapeSource.type";
+import { scrapeSearchFromSource } from "../../utils/scraper/scrapeSearchFromSource";
 
 export const searchAnimes = async (
+  sources: ScrapeSource[],
   param: string,
   pageIndex: number | null = 1,
 ): Promise<AnimePromise | null> => {
-  const [resultFire, resultOnline] = await Promise.all([
-    searchAnimesFromAnimesFire(param, pageIndex),
-    searchFromAnimesOnline(param, pageIndex),
-  ]);
+  const page = pageIndex || 1;
 
-  if (!resultFire && !resultOnline) return null;
+  const results = await Promise.all(
+    sources.map((source) =>
+      scrapeSearchFromSource(source, param, page).catch(() => null),
+    ),
+  );
 
-  const combinedAnimes = [
-    ...(resultFire?.animes || []),
-    ...(resultOnline?.animes || []),
-  ];
+  const validResults = results.filter((r): r is AnimePromise => r !== null);
+
+  if (validResults.length === 0) return null;
+
+  const combinedAnimes = validResults.flatMap((r) => r.animes);
 
   const seenNames = new Set<string>();
   const processedAnimes = combinedAnimes.map((anime) => ({
@@ -35,11 +38,8 @@ export const searchAnimes = async (
   return {
     animes: uniqueAnimes,
     pagination: {
-      currentPage: pageIndex || 1,
-      lastPage: Math.max(
-        resultFire?.pagination?.lastPage || 0,
-        resultOnline?.pagination?.lastPage || 0,
-      ),
+      currentPage: page,
+      lastPage: Math.max(...validResults.map((r) => r.pagination.lastPage)),
       totalElements: uniqueAnimes.length,
     },
   };

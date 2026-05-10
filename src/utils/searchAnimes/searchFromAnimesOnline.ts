@@ -1,10 +1,10 @@
-import { Anime } from "../../types/anime.type";
+import { Anime, AnimePromise } from "../../types/anime.type";
 import { withPage } from "../puppeteerPool";
 
 export const searchFromAnimesOnline = async (
   param: string,
   pageIndex: number | null = 1,
-): Promise<{ animes: Anime[] } | null> => {
+): Promise<AnimePromise | null> => {
   const url = `https://animesonlines.net/?post_type=anime&s=${param.toLowerCase().replace(/ /g, "-")}${pageIndex ? `&pagina=${pageIndex}` : ""}`;
 
   try {

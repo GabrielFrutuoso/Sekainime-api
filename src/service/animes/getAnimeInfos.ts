@@ -1,23 +1,22 @@
 import { AnimeInfos } from "../../types/anime.type";
-import { getAnimeInfosFromAnimesFire } from "../../utils/animeInfos/getAnimeInfosFromAnimesFire";
-import { getAnimeInfosFromAnimesOnline } from "../../utils/animeInfos/getAnimeInfosFromAnimesOnline";
+import { ScrapeSource } from "../../types/scrapeSource.type";
+import { scrapeAnimeInfosFromSource } from "../../utils/scraper/scrapeAnimeInfosFromSource";
 
 export const getAnimeInfos = async (
+  sources: ScrapeSource[],
   anime: string,
 ): Promise<AnimeInfos | null> => {
-  const [resultFire, resultOnline] = await Promise.all([
-    getAnimeInfosFromAnimesFire(anime).catch(() => null),
-    getAnimeInfosFromAnimesOnline(anime).catch(() => null),
-  ]);
+  const results = await Promise.all(
+    sources.map((source) =>
+      scrapeAnimeInfosFromSource(source, anime).catch(() => null),
+    ),
+  );
 
-  if (!resultFire && !resultOnline) return null;
+  const validResults = results.filter((r): r is AnimeInfos => r !== null);
 
-  if (!resultFire) return resultOnline;
-  if (!resultOnline) return resultFire;
+  if (validResults.length === 0) return null;
 
-  if (resultFire.episodes.length >= resultOnline.episodes.length) {
-    return resultFire;
-  }
-
-  return resultOnline;
+  return validResults.reduce((best, current) =>
+    current.episodes.length > best.episodes.length ? current : best,
+  );
 };

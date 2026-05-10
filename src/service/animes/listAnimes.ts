@@ -1,35 +1,21 @@
-import { listAnimesFromAnimesOnline } from "../../utils/listAnimes/listAnimesFromAnimesOnline";
 import { AnimePromise } from "../../types/anime.type";
-import { listAnimesFromAnimesFire } from "../../utils/listAnimes/listAnimesFromAnimesFire";
-
-const ANIMES_ONLINE_MAP: Record<string, string> = {
-  "lista-de-animes-dublados": "?audio=Dublado",
-  "lista-de-animes-legendados": "?audio=Legendado",
-  "top-animes": "?ordem=score",
-  "em-lancamento": "?ordem=date",
-  "lista-de-filmes-legendados": "?ordem=date&tipo=Filme&audio=Legendado",
-  "lista-de-filmes-dublados": "?ordem=date&tipo=Filme&audio=Dublado",
-  "animes-atualizados": "?ordem=date",
-};
+import { ScrapeSource } from "../../types/scrapeSource.type";
+import { scrapeAnimesFromSource } from "../../utils/scraper/scrapeAnimesFromSource";
 
 export const listAnimes = async (
-  param: string = "top-animes",
-  pageIndex: number | null = null,
-  releaseYear: string | null = null,
+  sources: ScrapeSource[],
+  category: string,
+  page: number = 1,
 ): Promise<AnimePromise | null> => {
-  const onlineParam = ANIMES_ONLINE_MAP[param] || param;
+  const results = await Promise.all(
+    sources.map((source) => scrapeAnimesFromSource(source, category, page)),
+  );
 
-  const [resultFire, resultOnline] = await Promise.all([
-    listAnimesFromAnimesFire(param, pageIndex, releaseYear),
-    listAnimesFromAnimesOnline(onlineParam, pageIndex),
-  ]);
+  const validResults = results.filter((r): r is AnimePromise => r !== null);
 
-  if (!resultFire && !resultOnline) return null;
+  if (validResults.length === 0) return null;
 
-  const combinedAnimes = [
-    ...(resultFire?.animes || []),
-    ...(resultOnline?.animes || []),
-  ];
+  const combinedAnimes = validResults.flatMap((r) => r.animes);
   const seenNames = new Set<string>();
 
   const processedAnimes = combinedAnimes.map((anime) => ({
@@ -47,11 +33,8 @@ export const listAnimes = async (
   return {
     animes: uniqueAnimes,
     pagination: {
-      currentPage: pageIndex || 1,
-      lastPage: Math.max(
-        resultFire?.pagination?.lastPage || 0,
-        resultOnline?.pagination?.lastPage || 0,
-      ),
+      currentPage: page,
+      lastPage: Math.max(...validResults.map((r) => r.pagination.lastPage)),
       totalElements: uniqueAnimes.length,
     },
   };
